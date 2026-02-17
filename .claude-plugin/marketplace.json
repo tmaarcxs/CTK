@@ -1,0 +1,18 @@
+{
+  "name": "ctk-marketplace",
+  "description": "Claude Token Killer - Token-optimized CLI proxy for Claude Code",
+  "owner": {
+    "name": "tmaarcxs"
+  },
+  "plugins": [
+    {
+      "name": "ctk",
+      "description": "Token-optimized CLI proxy that saves 60-90% tokens. Automatically rewrites docker, git, kubectl, npm, pytest, cargo commands with compact output.",
+      "version": "1.1.0",
+      "source": "./",
+      "author": {
+        "name": "tmaarcxs"
+      }
+    }
+  ]
+}
