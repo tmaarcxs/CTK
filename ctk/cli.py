@@ -13,6 +13,7 @@ from rich.table import Table
 from .core.config import get_config
 from .core.metrics import MetricsDB, get_metrics
 from .core.rewriter import COMMAND_PATTERNS, should_rewrite_command
+from .utils.output_filter import filter_output
 from .utils.tokenizer import calculate_savings
 
 console = Console()
@@ -755,121 +756,10 @@ def _get_raw_command(ctk_cmd: str, category: str) -> str:
 
     return ""  # No raw equivalent - use CTK output as baseline
 
+# Alias for backward compatibility with tests
+_filter_output = filter_output
 
-def _filter_output(output: str, category: str) -> str:
-    """Apply aggressive output filtering based on category to maximize token savings."""
-    import re
 
-    if not output:
-        return output
-
-    lines = output.split("\n")
-    filtered_lines = []
-
-    # Universal skip patterns - boilerplate that wastes tokens
-    skip_patterns = [
-        r"^\s*$",  # Empty lines
-        r"^=+$",  # Separator lines
-        r"^-+$",  # Separator lines
-        r"^\++$",  # Separator lines
-        r"^\*+$",  # Separator lines
-        r"^~+$",  # Separator lines
-        r"^#+$",  # Separator lines
-        r"^\s*(Using|Fetching|Downloading|Installing|Building|Compiling|Processing|Analyzing|Checking|Validating|Verifying|Resolving|Preparing|Generating|Creating|Updating|Removing|Cleaning|Unpacking|Configuring|Setting up)",
-        r"^\s*(created|deleted|modified|changed|added|removed|updated|copied|moved|renamed):",
-        r"^\s*\d+%\s*\|.*\|",  # Progress bars
-        r"^\s*\d+%\s+complete",  # Progress percentage
-        r"^\s*\[\d+/\d+\]",  # Progress counters
-        r"^\s*WARN\s*:",  # Warnings (usually noise)
-        r"^\s*INFO\s*:",  # Info logs
-        r"^\s*DEBUG\s*:",  # Debug logs
-        r"^\s*TRACE\s*:",  # Trace logs
-        r"^\s*notice\s*:",  # Notice logs
-        r"^\s*verbose\s*:",  # Verbose logs
-        r"^\s*Done in\s+\d+",  # Timing info
-        r"^\s*Completed in\s+\d+",  # Timing info
-        r"^\s*Finished in\s+\d+",  # Timing info
-        r"^\s*Took\s+\d+",  # Timing info
-        r"^\s*Time:\s+\d+",  # Timing info
-        r"^\s*Duration:\s+\d+",  # Timing info
-        r"^\s*real\s+\d+m\d+",  # Time output
-        r"^\s*user\s+\d+m\d+",  # Time output
-        r"^\s*sys\s+\d+m\d+",  # Time output
-        r"^\s*$",  # Empty lines again (catch-all)
-        r"^\s*\.{3,}$",  # Ellipsis lines
-        r"^\s*please wait",  # Waiting messages
-        r"^\s*loading",  # Loading messages
-        r"^\s*spinning up",  # Startup messages
-        r"^\s*starting",  # Startup messages
-        r"^\s*initializing",  # Init messages
-        r"^\s*running",  # Running messages (usually noise)
-        r"^npm warn",  # npm warnings
-        r"^npm notice",  # npm notices
-        r"^yarn warn",  # yarn warnings
-        r"^pnpm warn",  # pnpm warnings
-        r"^warning:",  # Generic warnings
-        r"^deprecation",  # Deprecation warnings
-        r"^deprecated",  # Deprecated warnings
-        r"up to date",  # Already updated messages
-        r"already installed",  # Already installed
-        r"nothing to do",  # Nothing to do
-        r"no changes",  # No changes
-        r"skipping",  # Skipping messages
-        r"^\s*ok$",  # Just "ok"
-        r"^\s*success$",  # Just "success"
-        r"^\s*pass$",  # Just "pass"
-        r"^\s*passed$",  # Just "passed"
-        r"^\s*fail$",  # Just "fail"
-        r"^\s*failed$",  # Just "failed"
-        r"^\s*error:\s*$",  # Empty error lines
-        r"^\s*at\s+",  # Stack trace lines (usually noise in summaries)
-    ]
-
-    # Category-specific patterns
-    category_patterns = {
-        "docker": [
-            r"^\s*CONTAINER ID",  # Header (we know the format)
-            r"^\s*IMAGE\s+COMMAND",  # Header
-            r"^\s*NAMESPACE",  # K8s header
-        ],
-        "npm": [
-            r"^\s*up to date",
-            r"^\s*audited",
-            r"^\s*funding",
-            r"^added \d+ packages",
-            r"^removed \d+ packages",
-            r"^changed \d+ packages",
-            r"^\s*packages:",
-        ],
-        "python": [
-            r"^\s*==",
-            r"^\s*---",
-            r"^collected \d+ items",
-            r"^=\d+ passed",
-            r"^=\d+ failed",
-            r"^=\d+ skipped",
-        ],
-        "git": [
-            r"^\s*$",
-        ],
-    }
-
-    # Combine patterns
-    patterns = skip_patterns + category_patterns.get(category, [])
-
-    for line in lines:
-        skip = False
-        for pattern in patterns:
-            if re.match(pattern, line, re.IGNORECASE):
-                skip = True
-                break
-        if not skip:
-            filtered_lines.append(line)
-
-    # No truncation - keep all useful data
-    # Savings come from removing boilerplate, not cutting results
-
-    return "\n".join(filtered_lines)
 
 
 # ==================== Additional Commands ====================
