@@ -30,7 +30,10 @@ if [ "$NEEDS_UPDATE" = "true" ]; then
     echo "[CTK] Updating ($REASON)..."
 
     # Use pip to install from plugin directory
-    pip3 install -e "$PLUGIN_ROOT" --quiet 2>/dev/null || pip3 install -e "$PLUGIN_ROOT"
+    # Try without --break-system-packages first, then fallback to it for PEP 668 managed environments
+    pip3 install -e "$PLUGIN_ROOT" --quiet 2>/dev/null || \
+        pip3 install -e "$PLUGIN_ROOT" --break-system-packages --quiet 2>/dev/null || \
+        pip3 install -e "$PLUGIN_ROOT" --break-system-packages
 
     # Ensure data directories exist
     mkdir -p "$HOME/.local/share/ctk"
