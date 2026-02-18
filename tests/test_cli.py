@@ -522,7 +522,9 @@ class TestCommandRegistry:
     def test_registry_has_docker_commands(self):
         from ctk.cli import COMMAND_REGISTRY
 
-        docker_commands = [(g, c) for (g, c) in COMMAND_REGISTRY.keys() if g == "docker"]
+        docker_commands = [
+            (g, c) for (g, c) in COMMAND_REGISTRY.keys() if g == "docker"
+        ]
         assert ("docker", "ps") in docker_commands
         assert ("docker", "images") in docker_commands
         assert ("docker", "logs") in docker_commands
