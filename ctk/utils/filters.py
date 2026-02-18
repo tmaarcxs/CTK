@@ -1017,6 +1017,118 @@ def compress_uvicorn_output(lines: list[str]) -> list[str]:
     return result if result else ["uvicorn: started"]
 
 
+def compress_vitest_output(lines: list[str]) -> list[str]:
+    """Compress vitest output to failures and summary only.
+
+    Converts:
+        ✓ src/utils.test.ts (5)
+        ✘ src/api.test.ts (3)
+        Test Files  2 passed (2)
+        Duration  1.23s
+
+    To:
+        FAIL:src/api.test.ts::test_name
+        2p 3f | 1.23s
+    """
+    result = []
+    failures = []
+    summary = {
+        "passed": 0,
+        "failed": 0,
+        "files_passed": 0,
+        "files_failed": 0,
+        "duration": "",
+    }
+
+    for line in lines:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+
+        # Detect failed tests
+        if "✘" in line or "FAIL" in line:
+            # Extract test file
+            match = re.search(r"([\w/]+\.test\.(ts|js|vue))", line_stripped)
+            if match:
+                failures.append(f"FAIL:{match.group(1)}")
+            continue
+
+        # Skip passing tests
+        if "✓" in line or "PASS" in line:
+            continue
+
+        # Extract summary
+        if re.search(r"Test Files", line_stripped):
+            match = re.search(r"(\d+)\s+passed.*?(\d+)?\s*failed?", line_stripped)
+            if match:
+                summary["files_passed"] = int(match.group(1))
+                if match.group(2):
+                    summary["files_failed"] = int(match.group(2))
+
+        if re.search(r"(Tests|passed|failed)", line_stripped):
+            match = re.search(r"(\d+)\s+passed", line_stripped)
+            if match:
+                summary["passed"] = int(match.group(1))
+            match = re.search(r"(\d+)\s+failed", line_stripped)
+            if match:
+                summary["failed"] = int(match.group(1))
+
+        if re.search(r"Duration", line_stripped):
+            match = re.search(r"([\d.]+)\s*(ms|s)?", line_stripped)
+            if match:
+                summary["duration"] = match.group(1) + (match.group(2) or "s")
+
+    # Build output
+    result.extend(failures[:10])
+
+    if summary["passed"] or summary["failed"]:
+        parts = []
+        if summary["passed"]:
+            parts.append(f"{summary['passed']}p")
+        if summary["failed"]:
+            parts.append(f"{summary['failed']}f")
+        summary_line = " ".join(parts)
+        if summary["duration"]:
+            summary_line += f" | {summary['duration']}"
+        result.append(summary_line)
+
+    return result if result else ["vitest: passed"]
+
+
+def compress_make_output(lines: list[str]) -> list[str]:
+    """Compress make output to essential info.
+
+    Strips entering/leaving directory messages and progress noise.
+    """
+    result = []
+
+    for line in lines:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+
+        # Skip directory change messages
+        if re.match(r"^make\[\d+\]:\s+(Entering|Leaving) directory", line_stripped):
+            continue
+
+        # Skip "Nothing to be done" messages
+        if "Nothing to be done" in line_stripped:
+            return ["make: up-to-date"]
+
+        # Skip "is up to date" messages
+        if re.search(r"is up to date", line_stripped):
+            continue
+
+        # Keep error lines and targets
+        if re.match(r"^(make\[\d+\]:\s+\*\*\*|Error|error)", line_stripped):
+            result.append(line_stripped[:80])
+        elif not re.match(r"^(CC|CXX|LD|AR|CP|MV|RM)", line_stripped):
+            # Keep non-compiler-noise lines
+            result.append(line_stripped[:80])
+
+    return result[:20] if result else ["make: done"]
+
+
 # Compressor registry
 _COMPRESSORS = {
     "git": compress_git_status,
@@ -1029,6 +1141,8 @@ _COMPRESSORS = {
     "network": _compress_network_output,
     "alembic": compress_alembic_output,
     "uvicorn": compress_uvicorn_output,
+    "vitest": compress_vitest_output,
+    "make": compress_make_output,
 }
 
 
@@ -1071,6 +1185,8 @@ def _matches_expected_format(lines: list[str], category: str) -> bool:
         return bool(
             re.search(r"(HTTP|curl|wget|Connecting|Resolving)", text, re.IGNORECASE)
         )
+    elif category == "vitest":
+        return bool(re.search(r"(PASS|FAIL|✓|✘|Test Files|Duration)", text))
 
     return True  # Assume valid for unknown categories
 

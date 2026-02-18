@@ -78,7 +78,7 @@ COMMAND_REGISTRY = {
     # Node.js commands
     ("", "npm"): ("npm ", "nodejs"),
     ("", "pnpm"): ("pnpm ", "nodejs"),
-    ("", "vitest"): ("npx vitest run --reporter=verbose 2>&1", "nodejs"),
+    ("", "vitest"): ("npx vitest run --reporter=verbose 2>&1", "vitest"),
     ("", "tsc"): ("npx tsc --pretty 2>&1", "nodejs"),
     ("", "lint"): ("npx eslint --format compact 2>&1", "nodejs"),
     ("", "prettier"): ("npx prettier ", "nodejs"),
@@ -104,6 +104,7 @@ COMMAND_REGISTRY = {
     ("", "sqlite3"): ("sqlite3 ", "system"),
     ("", "alembic"): ("alembic ", "alembic"),
     ("", "uvicorn"): ("uvicorn ", "uvicorn"),
+    ("", "make"): ("make ", "make"),
 }
 
 

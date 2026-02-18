@@ -261,6 +261,21 @@ _register_category(
     ],
 )
 
+_register_category(
+    "vitest",
+    [
+        (r"^vitest\s+", "vitest"),
+        (r"^npx\s+vitest", "vitest"),
+    ],
+)
+
+_register_category(
+    "make",
+    [
+        (r"^make(\s|$)", "make"),
+    ],
+)
+
 
 def extract_prefix(cmd: str) -> tuple[str, str]:
     """Extract environment variable prefix and sudo prefix from command.
