@@ -13,7 +13,7 @@ from rich.table import Table
 from .core.config import get_config
 from .core.metrics import MetricsDB, get_metrics
 from .core.rewriter import COMMAND_PATTERNS, should_rewrite_command
-from .utils.output_filter import filter_output
+from .utils.filters import filter_output
 from .utils.tokenizer import calculate_savings
 
 console = Console()
