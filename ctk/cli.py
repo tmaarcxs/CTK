@@ -931,6 +931,42 @@ def ping_command(host: str, count: int):
     _run_command(f"ping -c {count} {host} 2>&1 | tail -5", "network")
 
 
+# ==================== Utility Commands ====================
+
+@cli.command("pwd")
+def pwd_command():
+    """Print working directory."""
+    _run_command("pwd", "system")
+
+
+@cli.command("sed", context_settings=CONTEXT_SETTINGS)
+@click.argument("args", nargs=-1)
+def sed_command(args: tuple[str, ...]):
+    """Stream editor."""
+    _run_command("sed " + " ".join(args), "files")
+
+
+@cli.command("jq", context_settings=CONTEXT_SETTINGS)
+@click.argument("args", nargs=-1)
+def jq_command(args: tuple[str, ...]):
+    """JSON processor."""
+    _run_command("jq " + " ".join(args), "files")
+
+
+@cli.command("apt", context_settings=CONTEXT_SETTINGS)
+@click.argument("args", nargs=-1)
+def apt_command(args: tuple[str, ...]):
+    """Package manager."""
+    _run_command("apt " + " ".join(args), "system")
+
+
+@cli.command("sqlite3", context_settings=CONTEXT_SETTINGS)
+@click.argument("args", nargs=-1)
+def sqlite3_command(args: tuple[str, ...]):
+    """SQLite database CLI."""
+    _run_command("sqlite3 " + " ".join(args), "system")
+
+
 # Config command
 @cli.command("config")
 @click.option("--show", is_flag=True, help="Show current configuration")
