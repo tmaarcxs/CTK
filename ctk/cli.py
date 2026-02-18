@@ -19,7 +19,11 @@ from .utils.tokenizer import calculate_savings
 console = Console()
 
 # Context settings to allow passthrough of flags like -T, -e, etc.
-CONTEXT_SETTINGS = {"ignore_unknown_options": True}
+CONTEXT_SETTINGS = {
+    "ignore_unknown_options": True,
+    "allow_extra_args": True,
+    "allow_interspersed_args": True,
+}
 
 
 @click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
