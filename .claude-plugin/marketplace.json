@@ -8,7 +8,7 @@
     {
       "name": "ctk",
       "description": "Token-optimized CLI proxy that saves 60-90% tokens. Automatically rewrites docker, git, kubectl, npm, pytest, cargo commands with compact output.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "source": "./",
       "author": {
         "name": "tmaarcxs"

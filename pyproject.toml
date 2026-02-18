@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ctk"
-version = "1.1.0"
+version = "1.1.1"
 description = "Claude Token Killer - Token-optimized CLI proxy for Claude Code"
 readme = "README.md"
 license = {text = "MIT"}
