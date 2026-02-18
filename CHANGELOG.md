@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-02-18
+
+### Fixed
+
+- **Flag passthrough** for all docker and git subcommands
+  - Fixed missing `context_settings` on 20 commands
+  - Docker: ps, images, logs, exec, run, build, network, volume, system
+  - Git: status, diff, log, add, commit, push, pull, branch, remote, stash, tag
+  - Commands like `ctk docker compose exec -T backend python test.py` now work correctly
+
+### Added
+
+- Comprehensive flag passthrough tests (16 new test cases)
+
 ## [1.1.1] - 2026-02-18
 
 ### Changed

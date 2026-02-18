@@ -28,7 +28,7 @@ CONTEXT_SETTINGS = {
 
 @click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
-@click.version_option(version="1.1.1", prog_name="ctk")
+@click.version_option(version="1.1.2", prog_name="ctk")
 def cli(ctx: click.Context):
     """CTK - Claude Token Killer: Token-optimized CLI proxy.
 
