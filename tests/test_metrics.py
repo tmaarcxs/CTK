@@ -261,3 +261,33 @@ class TestMetricsDBEdgeCases:
         )
         history = temp_db.get_history(limit=1)
         assert history[0]["original_command"] == unicode_cmd
+
+
+class TestTimeFilterHelper:
+    """Tests for _time_filter helper method."""
+
+    def test_no_filter(self):
+        """When days=0, return empty WHERE clause."""
+        from ctk.core.metrics import MetricsDB
+
+        db = MetricsDB()
+        where, params = db._time_filter(0)
+        assert where == ""
+        assert params == []
+
+    def test_filter_7_days(self):
+        """When days=7, return proper WHERE clause."""
+        from ctk.core.metrics import MetricsDB
+
+        db = MetricsDB()
+        where, params = db._time_filter(7)
+        assert "timestamp >= datetime" in where
+        assert params == ["-7 days"]
+
+    def test_filter_30_days(self):
+        """When days=30, return proper WHERE clause."""
+        from ctk.core.metrics import MetricsDB
+
+        db = MetricsDB()
+        where, params = db._time_filter(30)
+        assert params == ["-30 days"]

@@ -41,6 +41,19 @@ class MetricsDB:
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(SCHEMA)
 
+    def _time_filter(self, days: int) -> tuple[str, list[Any]]:
+        """Build WHERE clause and params for time-based filtering.
+
+        Args:
+            days: Number of days to filter (0 = all time)
+
+        Returns:
+            Tuple of (where_clause, params)
+        """
+        if days > 0:
+            return "WHERE timestamp >= datetime('now', ?)", [f"-{days} days"]
+        return "", []
+
     def record(
         self,
         original_command: str,
@@ -79,11 +92,7 @@ class MetricsDB:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
 
-            where = ""
-            params: list[Any] = []
-            if days > 0:
-                where = "WHERE timestamp >= datetime('now', ?)"
-                params = [f"-{days} days"]
+            where, params = self._time_filter(days)
 
             row = conn.execute(
                 f"""
@@ -143,11 +152,7 @@ class MetricsDB:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
 
-            where = ""
-            params: list[Any] = []
-            if days > 0:
-                where = "WHERE timestamp >= datetime('now', ?)"
-                params = [f"-{days} days"]
+            where, params = self._time_filter(days)
 
             rows = conn.execute(
                 f"""
@@ -174,11 +179,7 @@ class MetricsDB:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
 
-            where = ""
-            params: list[Any] = []
-            if days > 0:
-                where = "WHERE timestamp >= datetime('now', ?)"
-                params = [f"-{days} days"]
+            where, params = self._time_filter(days)
 
             rows = conn.execute(
                 f"""
@@ -205,11 +206,7 @@ class MetricsDB:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
 
-            where = ""
-            params: list[Any] = []
-            if days > 0:
-                where = "WHERE timestamp >= datetime('now', ?)"
-                params = [f"-{days} days"]
+            where, params = self._time_filter(days)
 
             rows = conn.execute(
                 f"""
