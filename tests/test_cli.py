@@ -23,7 +23,7 @@ class TestCliBasics:
         """Should show version."""
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "1.3" in result.output
+        assert "1.4" in result.output
 
     def test_help(self, runner):
         """Should show help."""
