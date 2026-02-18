@@ -1,6 +1,5 @@
 """Tests for output filtering functions."""
 
-
 from ctk.utils.output_filter import (
     collapse_empty_lines,
     compact_docker_output,
@@ -182,13 +181,15 @@ class TestFilterOutputEnhanced:
     def test_deduplicates_similar_lines(self):
         """Should compress similar consecutive lines."""
         # Create output with similar log lines (must be 15+ chars to trigger dedup)
-        output = "\n".join([
-            "[2024-01-01] Request processed successfully id=1",
-            "[2024-01-01] Request processed successfully id=2",
-            "[2024-01-01] Request processed successfully id=3",
-            "[2024-01-01] Request processed successfully id=4",
-            "[2024-01-01] Different log entry here",
-        ])
+        output = "\n".join(
+            [
+                "[2024-01-01] Request processed successfully id=1",
+                "[2024-01-01] Request processed successfully id=2",
+                "[2024-01-01] Request processed successfully id=3",
+                "[2024-01-01] Request processed successfully id=4",
+                "[2024-01-01] Different log entry here",
+            ]
+        )
         result = filter_output(output, "docker")
         # Should have compressed output (fewer lines than input)
         result_lines = [line for line in result.split("\n") if line.strip()]
@@ -359,7 +360,9 @@ class TestEnhancedPipeline:
 
     def test_errors_preserved(self):
         """Error output should be preserved verbatim."""
-        output = "Error: something failed\nTraceback (most recent call last):\n  at test()"
+        output = (
+            "Error: something failed\nTraceback (most recent call last):\n  at test()"
+        )
         result = filter_output(output, "python")
         # Error info should be preserved
         assert "Error:" in result

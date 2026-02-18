@@ -12,8 +12,8 @@ def estimate_tokens(text: str) -> int:
     if not text:
         return 0
     # Count words and punctuation separately for better accuracy
-    words = len(re.findall(r'\b\w+\b', text))
-    punctuation = len(re.findall(r'[^\w\s]', text))
+    words = len(re.findall(r"\b\w+\b", text))
+    punctuation = len(re.findall(r"[^\w\s]", text))
     # Average: words ~1.3 tokens, punctuation ~0.5 tokens
     return int(words * 1.3 + punctuation * 0.5 + 1)
 
@@ -39,5 +39,5 @@ def calculate_savings(original: str, filtered: str) -> dict:
         "original_tokens": original_tokens,
         "filtered_tokens": filtered_tokens,
         "tokens_saved": saved,
-        "savings_percent": round(percent, 1)
+        "savings_percent": round(percent, 1),
     }

@@ -11,12 +11,36 @@ DEFAULT_CONFIG = {
     "version": 1,
     "enabled": True,
     "commands": {
-        "docker": {"enabled": True, "compose": True, "ps": True, "images": True, "logs": True},
+        "docker": {
+            "enabled": True,
+            "compose": True,
+            "ps": True,
+            "images": True,
+            "logs": True,
+        },
         "git": {"enabled": True, "status": True, "diff": True, "log": True},
-        "system": {"enabled": True, "ps": True, "free": True, "date": True, "whoami": True},
-        "files": {"enabled": True, "ls": True, "tree": True, "grep": True, "find": True},
+        "system": {
+            "enabled": True,
+            "ps": True,
+            "free": True,
+            "date": True,
+            "whoami": True,
+        },
+        "files": {
+            "enabled": True,
+            "ls": True,
+            "tree": True,
+            "grep": True,
+            "find": True,
+        },
         "python": {"enabled": True, "pytest": True, "ruff": True, "pip": True},
-        "nodejs": {"enabled": True, "npm": True, "pnpm": True, "vitest": True, "tsc": True},
+        "nodejs": {
+            "enabled": True,
+            "npm": True,
+            "pnpm": True,
+            "vitest": True,
+            "tsc": True,
+        },
     },
     "display": {
         "color": True,
@@ -26,7 +50,7 @@ DEFAULT_CONFIG = {
     "metrics": {
         "enabled": True,
         "database": None,  # Will be set to default path
-    }
+    },
 }
 
 
@@ -94,15 +118,19 @@ class Config:
     def is_command_enabled(self, category: str, command: str) -> bool:
         """Check if a specific command is enabled."""
         return bool(
-            self.get(f"commands.{category}.enabled", True) and
-            self.get(f"commands.{category}.{command}", True)
+            self.get(f"commands.{category}.enabled", True)
+            and self.get(f"commands.{category}.{command}", True)
         )
 
     def _merge(self, base: dict, override: dict) -> dict:
         """Recursively merge two dictionaries."""
         result = base.copy()
         for key, value in override.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = self._merge(result[key], value)
             else:
                 result[key] = value

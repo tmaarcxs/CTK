@@ -23,7 +23,7 @@ class TestCliBasics:
         """Should show version."""
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "1.1" in result.output
+        assert "1.2" in result.output
 
     def test_help(self, runner):
         """Should show help."""
@@ -164,7 +164,10 @@ class TestDiscoverCommand:
             mock_path.home.return_value = Path("/nonexistent")
             result = runner.invoke(cli, ["discover"])
             assert result.exit_code == 0
-            assert "No Claude Code history" in result.output or "analyzing" in result.output.lower()
+            assert (
+                "No Claude Code history" in result.output
+                or "analyzing" in result.output.lower()
+            )
 
 
 class TestProxyCommand:
@@ -360,7 +363,9 @@ class TestFlagPassthrough:
     @patch("ctk.cli._run_command")
     def test_docker_compose_exec_with_t_flag(self, mock_run, runner):
         """Should pass -T flag to docker compose exec."""
-        _result = runner.invoke(cli, ["docker", "compose", "exec", "-T", "backend", "python", "test.py"])
+        _result = runner.invoke(
+            cli, ["docker", "compose", "exec", "-T", "backend", "python", "test.py"]
+        )
         assert mock_run.called
         # Verify the command includes the -T flag
         call_args = mock_run.call_args[0][0]
@@ -487,14 +492,25 @@ class TestFlagPassthrough:
     @patch("ctk.cli._run_command")
     def test_docker_compose_exec_complex_command(self, mock_run, runner):
         """Should pass complex command with multiple flags."""
-        _result = runner.invoke(cli, [
-            "docker", "compose", "exec", "-T", "-e", "VAR=value",
-            "backend", "python", "-m", "pytest", "-xvs", "tests/"
-        ])
+        _result = runner.invoke(
+            cli,
+            [
+                "docker",
+                "compose",
+                "exec",
+                "-T",
+                "-e",
+                "VAR=value",
+                "backend",
+                "python",
+                "-m",
+                "pytest",
+                "-xvs",
+                "tests/",
+            ],
+        )
         assert mock_run.called
         call_args = mock_run.call_args[0][0]
         assert "-T" in call_args
         assert "-e" in call_args
         assert "VAR=value" in call_args
-
-

@@ -320,7 +320,9 @@ def symbolize_nodejs_change(change_type: str) -> str:
     Returns:
         Single character symbol
     """
-    return NODEJS_CHANGE_SYMBOLS.get(change_type.lower(), change_type[0] if change_type else "")
+    return NODEJS_CHANGE_SYMBOLS.get(
+        change_type.lower(), change_type[0] if change_type else ""
+    )
 
 
 def has_errors(lines: list[str]) -> bool:

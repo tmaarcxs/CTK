@@ -26,9 +26,34 @@ CONTEXT_SETTINGS = {
 }
 
 
-@click.group(invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
+class ProxyVersionGroup(click.Group):
+    """Custom Group that handles --version for CTK while passing it through to subcommands."""
+
+    def main(self, args: list[str] | None = None, prog_name: str | None = None, **kwargs) -> None:  # type: ignore[override]
+        """Override main to handle --version before Click processes it."""
+        if args is None:
+            args = sys.argv[1:]
+
+        # Check if --version is the only argument (no subcommand)
+        has_version = "--version" in args or "-v" in args
+        has_subcommand = any(
+            arg in self.commands for arg in args if not arg.startswith("-")
+        )
+
+        if has_version and not has_subcommand:
+            click.echo("ctk, version 1.2.1")
+            sys.exit(0)
+
+        # Otherwise, let Click handle it normally (version flag will be passed to subcommand)
+        super().main(args, prog_name, **kwargs)
+
+
+@click.group(
+    cls=ProxyVersionGroup,
+    invoke_without_command=True,
+    context_settings=CONTEXT_SETTINGS,
+)
 @click.pass_context
-@click.version_option(version="1.2.0", prog_name="ctk")
 def cli(ctx: click.Context):
     """CTK - Claude Token Killer: Token-optimized CLI proxy.
 
@@ -40,24 +65,40 @@ def cli(ctx: click.Context):
 
 # ==================== Meta Commands ====================
 
+
 @cli.command()
-@click.option("--history", is_flag=True, help="Show command history with detailed token info")
+@click.option(
+    "--history", is_flag=True, help="Show command history with detailed token info"
+)
 @click.option("--daily", is_flag=True, help="Show daily statistics")
 @click.option("--weekly", is_flag=True, help="Show weekly statistics")
 @click.option("--monthly", is_flag=True, help="Show monthly statistics")
 @click.option("--top", "-t", default=10, help="Number of top commands to show")
 @click.option("--export", type=click.Choice(["json", "csv"]), help="Export data")
 @click.option("--output", "-o", type=click.Path(), help="Output file for export")
-def gain(history: bool, daily: bool, weekly: bool, monthly: bool,
-         top: int, export: str | None, output: str | None):
+def gain(
+    history: bool,
+    daily: bool,
+    weekly: bool,
+    monthly: bool,
+    top: int,
+    export: str | None,
+    output: str | None,
+):
     """Show token savings summary and analytics."""
     metrics = get_metrics()
 
     if export:
-        data = metrics.export(format=export, output_path=Path(output) if output else None)
+        data = metrics.export(
+            format=export, output_path=Path(output) if output else None
+        )
         if not output:
             click.echo(data)
-        console.print(f"[green]Exported to {output}[/green]" if output else "[green]Exported[/green]")
+        console.print(
+            f"[green]Exported to {output}[/green]"
+            if output
+            else "[green]Exported[/green]"
+        )
         return
 
     if history:
@@ -77,7 +118,9 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
 
     period = "all time" if days == 0 else f"last {days} day{'s' if days > 1 else ''}"
 
-    console.print(Panel(f"[bold cyan]Token Savings Summary ({period})[/bold cyan]", expand=False))
+    console.print(
+        Panel(f"[bold cyan]Token Savings Summary ({period})[/bold cyan]", expand=False)
+    )
 
     # Overall statistics with before/after tokens
     console.print("\n[bold]Overall Statistics[/bold]")
@@ -86,17 +129,19 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
 
     # Token breakdown
     console.print("\n[bold]Token Breakdown[/bold]")
-    orig = summary['total_original_tokens']
-    filt = summary['total_filtered_tokens']
-    saved = summary['total_tokens_saved']
-    pct = summary['avg_savings_percent']
+    orig = summary["total_original_tokens"]
+    filt = summary["total_filtered_tokens"]
+    saved = summary["total_tokens_saved"]
+    pct = summary["avg_savings_percent"]
 
     # Visual bar for savings
     if orig > 0:
         bar_len = 30
         saved_ratio = min(saved / orig, 1.0) if orig > 0 else 0
         saved_bar = int(bar_len * saved_ratio)
-        bar_visual = "[green]" + "█" * saved_bar + "[/green]" + "░" * (bar_len - saved_bar)
+        bar_visual = (
+            "[green]" + "█" * saved_bar + "[/green]" + "░" * (bar_len - saved_bar)
+        )
     else:
         bar_visual = "░" * 30
 
@@ -105,8 +150,10 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
     console.print(f"  Tokens saved:  [green]{saved:,}[/green] ({pct}%)")
     console.print(f"  Savings bar:   {bar_visual}")
 
-    if summary['max_tokens_saved'] > 0:
-        console.print(f"\n  Max saved (single cmd): [green]{summary['max_tokens_saved']:,}[/green]")
+    if summary["max_tokens_saved"] > 0:
+        console.print(
+            f"\n  Max saved (single cmd): [green]{summary['max_tokens_saved']:,}[/green]"
+        )
 
     # By category with visual bars
     if by_category:
@@ -120,13 +167,19 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
         table.add_column("%", justify="right")
         table.add_column("Visual", justify="left")
 
-        max_saved = max((s["tokens_saved"] for s in by_category.values()), default=0) or 1
+        max_saved = (
+            max((s["tokens_saved"] for s in by_category.values()), default=0) or 1
+        )
 
-        for cat, stats in sorted(by_category.items(), key=lambda x: x[1]["tokens_saved"], reverse=True):
+        for cat, stats in sorted(
+            by_category.items(), key=lambda x: x[1]["tokens_saved"], reverse=True
+        ):
             bar_len = 15
             saved_ratio = stats["tokens_saved"] / max_saved if max_saved > 0 else 0
             saved_bar = int(bar_len * saved_ratio)
-            bar_visual = "[green]" + "█" * saved_bar + "[/green]" + "░" * (bar_len - saved_bar)
+            bar_visual = (
+                "[green]" + "█" * saved_bar + "[/green]" + "░" * (bar_len - saved_bar)
+            )
 
             table.add_row(
                 cat,
@@ -135,7 +188,7 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
                 f"{stats.get('filtered_tokens', 0):,}",
                 f"[green]{stats['tokens_saved']:,}[/green]",
                 f"{stats['avg_savings_percent']}%",
-                bar_visual
+                bar_visual,
             )
 
         console.print(table)
@@ -158,7 +211,11 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
                 orig_cmd = orig_cmd[:32] + "..."
 
             saved_pct = cmd["avg_savings"] or 0
-            color = "green" if saved_pct >= 50 else ("yellow" if saved_pct >= 25 else "white")
+            color = (
+                "green"
+                if saved_pct >= 50
+                else ("yellow" if saved_pct >= 25 else "white")
+            )
 
             table.add_row(
                 str(i),
@@ -167,7 +224,7 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
                 f"{cmd.get('original_tokens', 0):,}",
                 f"{cmd.get('filtered_tokens', 0):,}",
                 f"[{color}]{cmd['tokens_saved'] or 0:,}[/{color}]",
-                f"{saved_pct:.1f}%"
+                f"{saved_pct:.1f}%",
             )
 
         console.print(table)
@@ -192,7 +249,7 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
                 orig_cmd,
                 str(cmd["count"]),
                 f"[green]{cmd['tokens_saved'] or 0:,}[/green]",
-                f"{cmd['avg_savings'] or 0:.1f}%"
+                f"{cmd['avg_savings'] or 0:.1f}%",
             )
 
         console.print(table)
@@ -211,7 +268,7 @@ def _show_summary(metrics: MetricsDB, days: int = 0, top: int = 10):
                 stat["date"],
                 str(stat["commands"]),
                 f"[green]{stat['tokens_saved'] or 0:,}[/green]",
-                f"{stat['avg_savings'] or 0:.1f}%"
+                f"{stat['avg_savings'] or 0:.1f}%",
             )
 
         console.print(table)
@@ -248,10 +305,12 @@ def _show_history(metrics: MetricsDB, limit: int = 20, detailed: bool = False):
         ]
 
         if detailed:
-            row.extend([
-                str(entry.get("original_tokens", 0)),
-                str(entry.get("filtered_tokens", 0)),
-            ])
+            row.extend(
+                [
+                    str(entry.get("original_tokens", 0)),
+                    str(entry.get("filtered_tokens", 0)),
+                ]
+            )
 
         row.append(f"[green]{entry['tokens_saved'] or 0}[/green]")
 
@@ -268,7 +327,9 @@ def _show_history(metrics: MetricsDB, limit: int = 20, detailed: bool = False):
 @click.option("--all", "show_all", is_flag=True, help="Show all missed opportunities")
 def discover(show_all: bool):
     """Analyze Claude Code history for missed optimization opportunities."""
-    console.print("[cyan]Analyzing Claude Code history for missed opportunities...[/cyan]")
+    console.print(
+        "[cyan]Analyzing Claude Code history for missed opportunities...[/cyan]"
+    )
 
     history_paths = [
         Path.home() / ".claude" / "projects",
@@ -303,6 +364,7 @@ def _analyze_history_dir(base_path: Path, show_all: bool):
                             for category, config in COMMAND_PATTERNS.items():
                                 for pattern, _ in config["patterns"]:
                                     import re
+
                                     if re.search(pattern, msg):
                                         result = should_rewrite_command(msg)
                                         if not result.should_rewrite:
@@ -329,7 +391,9 @@ def proxy_command(command: tuple[str, ...]):
     metrics = get_metrics()
 
     start = time.time()
-    result = subprocess.run(cmd_str, shell=True)  # noqa: S602 - intentional for CLI proxy
+    result = subprocess.run(
+        cmd_str, shell=True
+    )  # noqa: S602 - intentional for CLI proxy
     exec_time = int((time.time() - start) * 1000)
 
     metrics.record(
@@ -343,6 +407,7 @@ def proxy_command(command: tuple[str, ...]):
 
 
 # ==================== Docker Commands ====================
+
 
 @cli.group(context_settings=CONTEXT_SETTINGS)
 def docker():
@@ -436,6 +501,7 @@ def compose_exec(args: tuple[str, ...]):
 
 # ==================== Git Commands ====================
 
+
 @cli.group(context_settings=CONTEXT_SETTINGS)
 def git():
     """Git commands with compact output."""
@@ -493,6 +559,7 @@ def git_pull(args: tuple[str, ...]):
 
 # ==================== System Commands ====================
 
+
 @cli.command("ps", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
 def ps_command(args: tuple[str, ...]):
@@ -521,6 +588,7 @@ def whoami_command():
 
 
 # ==================== File Commands ====================
+
 
 @cli.command("ls", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
@@ -569,6 +637,7 @@ def du_command(args: tuple[str, ...]):
 
 # ==================== Python Commands ====================
 
+
 @cli.command("pytest", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
 def pytest_command(args: tuple[str, ...]):
@@ -592,6 +661,7 @@ def pip_command(args: tuple[str, ...]):
 
 
 # ==================== Node.js Commands ====================
+
 
 @cli.command("npm", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
@@ -637,6 +707,7 @@ def prettier_command(args: tuple[str, ...]):
 
 # ==================== Utility Functions ====================
 
+
 def _run_command(cmd: str, category: str):
     """Run a command and track metrics.
 
@@ -651,14 +722,18 @@ def _run_command(cmd: str, category: str):
     raw_output = ""
     if raw_cmd and raw_cmd != cmd:
         try:
-            raw_result = subprocess.run(raw_cmd, shell=True, capture_output=True, text=True, timeout=5)  # noqa: S602
+            raw_result = subprocess.run(
+                raw_cmd, shell=True, capture_output=True, text=True, timeout=5
+            )  # noqa: S602
             raw_output = raw_result.stdout + raw_result.stderr
         except Exception:
             raw_output = ""
 
     # Run the CTK-optimized command
     start = time.time()
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)  # noqa: S602 - intentional for CLI proxy
+    result = subprocess.run(
+        cmd, shell=True, capture_output=True, text=True
+    )  # noqa: S602 - intentional for CLI proxy
     exec_time = int((time.time() - start) * 1000)
 
     output = result.stdout + result.stderr
@@ -695,7 +770,10 @@ def _get_raw_command(ctk_cmd: str, category: str) -> str:
     """
     # Commands that are identical (filtering only, no modification)
     identical_cmds = {
-        "whoami", "hostname", "id", "uname -a",
+        "whoami",
+        "hostname",
+        "id",
+        "uname -a",
     }
 
     if ctk_cmd in identical_cmds:
@@ -731,13 +809,13 @@ def _get_raw_command(ctk_cmd: str, category: str) -> str:
 
     return ""  # No raw equivalent - use CTK output as baseline
 
+
 # Alias for backward compatibility with tests
 _filter_output = filter_output
 
 
-
-
 # ==================== Additional Commands ====================
+
 
 @cli.command("gh", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
@@ -761,6 +839,7 @@ def wget_command(args: tuple[str, ...]):
 
 
 # ==================== Extended System Commands ====================
+
 
 @cli.command("df", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
@@ -821,6 +900,7 @@ def id_command():
 
 # ==================== Extended File Commands ====================
 
+
 @cli.command("tail")
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--lines", "-n", default=20, help="Number of lines")
@@ -860,6 +940,7 @@ def cat_command(file: str, max_lines: int):
 
 # ==================== Extended Docker Commands ====================
 
+
 @docker.command("network", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
 def docker_network(args: tuple[str, ...]):
@@ -882,6 +963,7 @@ def docker_system(args: tuple[str, ...]):
 
 
 # ==================== Extended Git Commands ====================
+
 
 @git.command("branch", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
@@ -913,6 +995,7 @@ def git_tag(args: tuple[str, ...]):
 
 # ==================== Network Commands ====================
 
+
 @cli.command("ip", context_settings=CONTEXT_SETTINGS)
 @click.argument("args", nargs=-1)
 def ip_command(args: tuple[str, ...]):
@@ -936,6 +1019,7 @@ def ping_command(host: str, count: int):
 
 
 # ==================== Utility Commands ====================
+
 
 @cli.command("pwd")
 def pwd_command():

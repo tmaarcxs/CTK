@@ -67,7 +67,10 @@ def compress_git_status(lines: list[str]) -> list[str]:
         if "Untracked files:" in line:
             in_untracked = True
             continue
-        if "Changes to be committed:" in line or "Changes not staged for commit:" in line:
+        if (
+            "Changes to be committed:" in line
+            or "Changes not staged for commit:" in line
+        ):
             in_untracked = False
             continue
 
@@ -82,7 +85,9 @@ def compress_git_status(lines: list[str]) -> list[str]:
         matched = False
         for status, symbol in GIT_STATUS_SYMBOLS.items():
             if status in line_clean.lower():
-                match = re.search(rf"{re.escape(status)}\s+(.+)", line_clean, re.IGNORECASE)
+                match = re.search(
+                    rf"{re.escape(status)}\s+(.+)", line_clean, re.IGNORECASE
+                )
                 if match:
                     file_path = match.group(1).strip()
                     status_groups[symbol].append(file_path)
@@ -127,7 +132,10 @@ def compress_docker_output(lines: list[str]) -> list[str]:
             continue
 
         # Skip headers
-        if re.match(r"^\s*(CONTAINER ID|REPOSITORY|NETWORK ID|VOLUME NAME|IMAGE\s+COMMAND)", line_stripped):
+        if re.match(
+            r"^\s*(CONTAINER ID|REPOSITORY|NETWORK ID|VOLUME NAME|IMAGE\s+COMMAND)",
+            line_stripped,
+        ):
             continue
 
         # Try to parse docker ps format
@@ -169,7 +177,9 @@ def compress_docker_output(lines: list[str]) -> list[str]:
                 result.append(f"{container_id} {image} {status} {name}")
         else:
             # Non-standard format - just truncate IDs
-            compressed = re.sub(r"\b([a-f0-9]{12,})\b", lambda m: m.group(1)[:7], line_stripped)
+            compressed = re.sub(
+                r"\b([a-f0-9]{12,})\b", lambda m: m.group(1)[:7], line_stripped
+            )
             if compressed:
                 result.append(compressed)
 
@@ -318,9 +328,15 @@ def compress_nodejs_output(lines: list[str]) -> list[str]:
             continue
 
         # Skip noise
-        if re.match(r"^\s*(Progress:|packages:|audited|auditing|WARN|Done in)", line_stripped, re.IGNORECASE):
+        if re.match(
+            r"^\s*(Progress:|packages:|audited|auditing|WARN|Done in)",
+            line_stripped,
+            re.IGNORECASE,
+        ):
             continue
-        if re.match(r"^\s*(dependencies|devDependencies):", line_stripped, re.IGNORECASE):
+        if re.match(
+            r"^\s*(dependencies|devDependencies):", line_stripped, re.IGNORECASE
+        ):
             continue
 
     # Build output
@@ -495,7 +511,9 @@ def compress_find_output(lines: list[str]) -> list[str]:
                 dir_name = "/".join(path.split("/")[:-1]) if "/" in path else ""
                 if dir_name in dir_counts and dir_counts[dir_name] > 10:
                     if dir_name not in shown_dirs:
-                        aggregated.append(f"{dir_name}/ [...{dir_counts[dir_name]} files]")
+                        aggregated.append(
+                            f"{dir_name}/ [...{dir_counts[dir_name]} files]"
+                        )
                         shown_dirs.add(dir_name)
                 else:
                     aggregated.append(path)
@@ -607,7 +625,9 @@ def compress_wget_output(lines: list[str]) -> list[str]:
 
         # Keep saved message
         if "saved" in line_stripped.lower():
-            match = re.search(r"saved\s+\[.*\]\s*(.+\.?\s*)?", line_stripped, re.IGNORECASE)
+            match = re.search(
+                r"saved\s+\[.*\]\s*(.+\.?\s*)?", line_stripped, re.IGNORECASE
+            )
             if match:
                 result.append(f"saved:{match.group(1) or 'done'}")
             continue
@@ -692,7 +712,9 @@ def matches_expected_format(lines: list[str], category: str) -> bool:
     if category == "git":
         # Should have status keywords or branch info
         return bool(
-            re.search(r"(modified|deleted|new file|On branch|Untracked)", text, re.IGNORECASE)
+            re.search(
+                r"(modified|deleted|new file|On branch|Untracked)", text, re.IGNORECASE
+            )
         )
     elif category == "docker":
         # Should have container-like output
@@ -700,7 +722,11 @@ def matches_expected_format(lines: list[str], category: str) -> bool:
     elif category == "python":
         # Should have pytest output
         return bool(
-            re.search(r"(PASSED|FAILED|collected|test session|passed.*failed)", text, re.IGNORECASE)
+            re.search(
+                r"(PASSED|FAILED|collected|test session|passed.*failed)",
+                text,
+                re.IGNORECASE,
+            )
         )
     elif category == "nodejs":
         # Should have npm/pnpm output

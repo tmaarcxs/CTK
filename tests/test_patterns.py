@@ -37,7 +37,10 @@ class TestCompressGitStatus:
         ]
         result = compress_git_status(lines)
         # All modified files should be on one line
-        assert any("M:" in line and "src/app.ts" in line and "src/utils.ts" in line for line in result)
+        assert any(
+            "M:" in line and "src/app.ts" in line and "src/utils.ts" in line
+            for line in result
+        )
 
     def test_compress_untracked_files(self):
         """Should handle untracked files."""
@@ -69,7 +72,7 @@ class TestCompressDockerOutput:
         """Should compress docker ps output."""
         lines = [
             "CONTAINER ID   IMAGE         COMMAND    STATUS       PORTS                NAMES",
-            "abc123456789   nginx:latest  \"/bin/sh\"  Up 2 hours   0.0.0.0:80->80/tcp   web",
+            'abc123456789   nginx:latest  "/bin/sh"  Up 2 hours   0.0.0.0:80->80/tcp   web',
         ]
         result = compress_docker_output(lines)
         # Header should be removed

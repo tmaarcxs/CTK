@@ -20,7 +20,14 @@ class TestGitStatusSymbols:
 
     def test_symbol_mapping_exists(self):
         """All expected status types should have symbols."""
-        expected = ["modified:", "deleted:", "new file:", "renamed:", "copied:", "type changed:"]
+        expected = [
+            "modified:",
+            "deleted:",
+            "new file:",
+            "renamed:",
+            "copied:",
+            "type changed:",
+        ]
         for status in expected:
             assert status in GIT_STATUS_SYMBOLS
 

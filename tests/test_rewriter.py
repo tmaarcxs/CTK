@@ -1,6 +1,5 @@
 """Tests for the command rewriter module."""
 
-
 from ctk.core.rewriter import (
     COMMAND_CATEGORIES,
     RewriteResult,
@@ -68,15 +67,15 @@ class TestExtractSubcommandGeneric:
     def test_with_strip_patterns(self):
         """Should strip patterns before extraction."""
         result = _extract_subcommand_generic(
-            "tool --flag value subcommand args",
-            "tool",
-            [r"--flag\s+[^\s]+\s*"]
+            "tool --flag value subcommand args", "tool", [r"--flag\s+[^\s]+\s*"]
         )
         assert result == "subcommand"
 
     def test_empty_after_strip(self):
         """Should return None if nothing remains after stripping."""
-        result = _extract_subcommand_generic("tool --flag value", "tool", [r"--flag\s+[^\s]+\s*"])
+        result = _extract_subcommand_generic(
+            "tool --flag value", "tool", [r"--flag\s+[^\s]+\s*"]
+        )
         assert result is None
 
 
@@ -274,7 +273,16 @@ class TestCommandCategories:
 
     def test_categories_exist(self):
         """All expected categories should be registered."""
-        expected = {"docker", "git", "gh", "files", "system", "python", "nodejs", "network"}
+        expected = {
+            "docker",
+            "git",
+            "gh",
+            "files",
+            "system",
+            "python",
+            "nodejs",
+            "network",
+        }
         assert expected <= set(COMMAND_CATEGORIES.keys())
 
     def test_category_has_patterns(self):
@@ -297,7 +305,7 @@ class TestRewriteResult:
             original="git status",
             rewritten="ctk git status",
             category="git",
-            should_rewrite=True
+            should_rewrite=True,
         )
         assert result.original == "git status"
         assert result.rewritten == "ctk git status"
@@ -307,9 +315,6 @@ class TestRewriteResult:
     def test_dataclass_no_rewrite(self):
         """Should create RewriteResult for no-rewrite case."""
         result = RewriteResult(
-            original="unknown",
-            rewritten=None,
-            category="none",
-            should_rewrite=False
+            original="unknown", rewritten=None, category="none", should_rewrite=False
         )
         assert result.rewritten is None

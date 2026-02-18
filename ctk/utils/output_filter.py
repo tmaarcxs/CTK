@@ -16,22 +16,22 @@ def preprocess_output(output: str) -> str:
         return output
 
     # Strip ANSI escape sequences (colors, cursor movement, etc.)
-    output = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', output)
+    output = re.sub(r"\x1b\[[0-9;]*[a-zA-Z]", "", output)
     # Strip ANSI private mode sequences (e.g., [?25h, [?25l)
-    output = re.sub(r'\x1b\[\?[0-9;]*[a-zA-Z]', '', output)
+    output = re.sub(r"\x1b\[\?[0-9;]*[a-zA-Z]", "", output)
     # Strip additional ANSI codes (OSC, etc.)
-    output = re.sub(r'\x1b\][^\x07]*\x07', '', output)
-    output = re.sub(r'\x1b[()][AB012]', '', output)
+    output = re.sub(r"\x1b\][^\x07]*\x07", "", output)
+    output = re.sub(r"\x1b[()][AB012]", "", output)
     # Strip spinner/progress characters
-    output = re.sub(r'[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]', '', output)
+    output = re.sub(r"[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]", "", output)
 
     # Remove Unicode box drawing characters
-    box_chars = '┌┐└┘│─├┤┬┴┼╭╮╯╰═║╔╗╚╝╠╣╦╩╬'
+    box_chars = "┌┐└┘│─├┤┬┴┼╭╮╯╰═║╔╗╚╝╠╣╦╩╬"
     for char in box_chars:
-        output = output.replace(char, '')
+        output = output.replace(char, "")
 
     # Normalize trailing whitespace on each line
-    lines = [line.rstrip() for line in output.split('\n')]
+    lines = [line.rstrip() for line in output.split("\n")]
 
     # Collapse consecutive empty lines to single empty line
     return collapse_empty_lines(lines)
@@ -46,7 +46,7 @@ def collapse_empty_lines(lines: list[str]) -> str:
         is_empty = not line.strip()
         if is_empty:
             if not prev_empty:
-                result.append('')
+                result.append("")
             prev_empty = True
         else:
             result.append(line)
@@ -58,7 +58,7 @@ def collapse_empty_lines(lines: list[str]) -> str:
     while result and not result[-1].strip():
         result.pop()
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def deduplicate_similar_lines(lines: list[str], threshold: float = 0.75) -> list[str]:
@@ -129,32 +129,32 @@ def compact_git_status(output: str) -> str:
         new file:   src/new.ts  ->  A src/new.ts
         ?? file.txt             ->  ? file.txt
     """
-    lines = output.split('\n')
+    lines = output.split("\n")
     result = []
 
     # Status mapping
     status_map = {
-        'modified:': 'M',
-        'deleted:': 'D',
-        'new file:': 'A',
-        'renamed:': 'R',
-        'copied:': 'C',
-        'type changed:': 'T',
+        "modified:": "M",
+        "deleted:": "D",
+        "new file:": "A",
+        "renamed:": "R",
+        "copied:": "C",
+        "type changed:": "T",
     }
 
     in_untracked = False
 
     for line in lines:
         # First, strip usage hints from any line
-        line = re.sub(r'\s*\(use "[^"]+"\s+[^)]+\)', '', line)
-        line = re.sub(r'\s*\(use "[^"]+"\)', '', line)
+        line = re.sub(r'\s*\(use "[^"]+"\s+[^)]+\)', "", line)
+        line = re.sub(r'\s*\(use "[^"]+"\)', "", line)
 
         # Track sections
-        if 'Changes to be committed:' in line:
+        if "Changes to be committed:" in line:
             continue
-        if 'Changes not staged for commit:' in line:
+        if "Changes not staged for commit:" in line:
             continue
-        if 'Untracked files:' in line:
+        if "Untracked files:" in line:
             in_untracked = True
             continue
 
@@ -164,37 +164,78 @@ def compact_git_status(output: str) -> str:
         for status, code in status_map.items():
             if status in line.lower():
                 # Extract file path (everything after the status keyword)
-                match = re.search(rf'{re.escape(status)}\s+(.+)', line, re.IGNORECASE)
+                match = re.search(rf"{re.escape(status)}\s+(.+)", line, re.IGNORECASE)
                 if match:
                     file_path = match.group(1).strip()
-                    result.append(f'{code} {file_path}')
+                    result.append(f"{code} {file_path}")
                     compacted = True
                     break
 
         # Handle untracked files (indented lines in untracked section)
         if not compacted and in_untracked:
-            match = re.match(r'^\s{2,}(\S.*)$', line)
+            match = re.match(r"^\s{2,}(\S.*)$", line)
             if match:
                 file_path = match.group(1).strip()
-                result.append(f'? {file_path}')
+                result.append(f"? {file_path}")
                 compacted = True
 
         if not compacted:
             # Remove branch info noise
-            line = re.sub(r'^\s*On branch \S+\s*$', '', line)
-            line = re.sub(r'^\s*Your branch is [^.]+\.\s*$', '', line)
-            line = re.sub(r'^\s*nothing to commit,?\s*', '', line)
-            line = re.sub(r'^\s*working tree clean\s*$', '', line)
-            line = re.sub(r'^\s*\(.*\)\s*$', '', line)  # Remove parenthetical hints
+            line = re.sub(r"^\s*On branch \S+\s*$", "", line)
+            line = re.sub(r"^\s*Your branch is [^.]+\.\s*$", "", line)
+            line = re.sub(r"^\s*nothing to commit,?\s*", "", line)
+            line = re.sub(r"^\s*working tree clean\s*$", "", line)
+            line = re.sub(r"^\s*\(.*\)\s*$", "", line)  # Remove parenthetical hints
             if line.strip():
                 result.append(line)
 
-    return '\n'.join(result)
+    return "\n".join(result)
+
+
+def is_pytest_output(output: str) -> bool:
+    """Check if output looks like pytest output."""
+    # Check for pytest-specific patterns that are unlikely in other output
+    output_lower = output.lower()
+
+    # Strong indicators - these are unique to pytest
+    strong_indicators = [
+        "test session starts",
+        "collected",
+        ".py::",  # test file pattern (e.g., test_file.py::test_name)
+        "short test summary",
+        "platform linux",  # pytest header
+        "rootdir:",  # pytest config
+        "cachedir:",  # pytest cache
+    ]
+    for indicator in strong_indicators:
+        if indicator in output_lower:
+            return True
+
+    # Check for uppercase PASSED/FAILED (pytest format) with brackets or line patterns
+    if re.search(r"\bPASSED\b", output) or re.search(r"\bFAILED\b", output):
+        return True
+
+    # Check for pytest summary format: "3 passed, 2 failed" or "X failed, Y passed"
+    if re.search(r"\d+\s+(passed|failed)", output_lower):
+        return True
+
+    # Check for pytest progress pattern: dots and F/E for failures
+    if re.search(r"[.FE]{10,}", output):
+        return True
+
+    return False
 
 
 def compact_pytest_output(output: str) -> str:
-    """Compact pytest output - remove passing tests, keep failures and summary."""
-    lines = output.split('\n')
+    """Compact pytest output - remove passing tests, keep failures and summary.
+
+    If output doesn't look like pytest, return it unchanged to preserve data.
+    """
+    # Safety: if this doesn't look like pytest output, return unchanged
+    if not is_pytest_output(output):
+        return output
+
+    lines = output.split("\n")
     result = []
     in_failure = False
     failure_context = []
@@ -202,7 +243,7 @@ def compact_pytest_output(output: str) -> str:
 
     for line in lines:
         # Always keep failures and errors
-        if 'FAILED' in line or 'ERROR' in line or 'error:' in line.lower():
+        if "FAILED" in line or "ERROR" in line or "error:" in line.lower():
             in_failure = True
             has_failures = True
             failure_context = [line]
@@ -210,38 +251,38 @@ def compact_pytest_output(output: str) -> str:
         elif in_failure:
             # Keep failure context (traceback, assertion details)
             failure_context.append(line)
-            if line.strip() and not line.startswith(' '):
+            if line.strip() and not line.startswith(" "):
                 # Non-indented line ends failure context
                 in_failure = False
-            if in_failure or line.startswith(('assert', 'E ', '>', 'FAILED', 'ERROR')):
+            if in_failure or line.startswith(("assert", "E ", ">", "FAILED", "ERROR")):
                 result.append(line)
 
         # Skip passing test lines
-        elif 'PASSED' in line:
+        elif "PASSED" in line:
             continue
         # Skip progress lines with dots
-        elif re.match(r'^tests/[\w/_.]+\s*\.+\s*\[\s*\d+%', line):
+        elif re.match(r"^tests/[\w/_.]+\s*\.+\s*\[\s*\d+%", line):
             continue
         # Skip lines that are just dots and progress
-        elif re.match(r'^[\w/_.\s]+\[\s*\d+%\s*\]', line):
+        elif re.match(r"^[\w/_.\s]+\[\s*\d+%\s*\]", line):
             # Only keep if it has failures info
-            if 'FAILED' not in line and 'ERROR' not in line:
+            if "FAILED" not in line and "ERROR" not in line:
                 continue
         # Skip separator lines
-        elif re.match(r'^=+$', line.strip()):
+        elif re.match(r"^=+$", line.strip()):
             continue
         # Skip collection lines
-        elif line.strip().startswith('collected'):
+        elif line.strip().startswith("collected"):
             continue
         # Skip session start lines
-        elif 'test session starts' in line.lower():
+        elif "test session starts" in line.lower():
             continue
         # Keep summary lines (only if failures exist or it's an error summary)
-        elif has_failures or 'failed' in line.lower() or 'error' in line.lower():
-            if line.strip() and 'passed' not in line.lower():
+        elif has_failures or "failed" in line.lower() or "error" in line.lower():
+            if line.strip() and "passed" not in line.lower():
                 result.append(line)
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def compact_docker_output(output: str) -> str:
@@ -253,35 +294,35 @@ def compact_docker_output(output: str) -> str:
     To compact format:
         abc1234 nginx Up 2h 0.0.0.0:80 web-server
     """
-    lines = output.split('\n')
+    lines = output.split("\n")
     result = []
 
     for line in lines:
         # Skip headers
-        if re.match(r'^\s*CONTAINER ID\s+IMAGE', line):
+        if re.match(r"^\s*CONTAINER ID\s+IMAGE", line):
             continue
-        if re.match(r'^\s*REPOSITORY\s+TAG', line):
+        if re.match(r"^\s*REPOSITORY\s+TAG", line):
             continue
-        if re.match(r'^\s*NAMESPACE\s+NAME', line):
+        if re.match(r"^\s*NAMESPACE\s+NAME", line):
             continue
-        if re.match(r'^\s*NETWORK ID\s+NAME', line):
+        if re.match(r"^\s*NETWORK ID\s+NAME", line):
             continue
-        if re.match(r'^\s*VOLUME NAME\s+DRIVER', line):
+        if re.match(r"^\s*VOLUME NAME\s+DRIVER", line):
             continue
 
         # Try to parse docker ps format
         # Format: ID IMAGE COMMAND CREATED STATUS PORTS NAMES
         # Use multiple spaces as column separator
-        parts = re.split(r'\s{2,}', line.strip())
+        parts = re.split(r"\s{2,}", line.strip())
 
         if len(parts) >= 6:
             container_id = parts[0][:7] if len(parts[0]) >= 7 else parts[0]
 
             # Image: remove tag if present
-            image = parts[1].split(':')[0] if ':' in parts[1] else parts[1]
+            image = parts[1].split(":")[0] if ":" in parts[1] else parts[1]
             # Truncate long image names
             if len(image) > 20:
-                image = image[:17] + '...'
+                image = image[:17] + "..."
 
             # parts[2] = COMMAND (skip)
             # parts[3] = CREATED (skip - relative time is usually obvious from status)
@@ -290,29 +331,53 @@ def compact_docker_output(output: str) -> str:
             # parts[6] = NAMES (or -1 index)
 
             # Status: extract state and duration
-            status = ''
-            status_raw = parts[4] if len(parts) > 4 else ''
-            status_match = re.match(r'(Up|Exited|Created|Restarting|Paused|Dead)\s*(.*)', status_raw, re.IGNORECASE)
+            status = ""
+            status_raw = parts[4] if len(parts) > 4 else ""
+            status_match = re.match(
+                r"(Up|Exited|Created|Restarting|Paused|Dead)\s*(.*)",
+                status_raw,
+                re.IGNORECASE,
+            )
             if status_match:
                 state = status_match.group(1)
-                duration = status_match.group(2).strip() if status_match.group(2) else ''
+                duration = (
+                    status_match.group(2).strip() if status_match.group(2) else ""
+                )
                 # Compact duration
-                duration = re.sub(r'(\d+)\s*(hours?|hrs?|h)\b', r'\1h', duration, flags=re.IGNORECASE)
-                duration = re.sub(r'(\d+)\s*(days?|d)\b', r'\1d', duration, flags=re.IGNORECASE)
-                duration = re.sub(r'(\d+)\s*(minutes?|mins?|m)\b', r'\1m', duration, flags=re.IGNORECASE)
-                duration = re.sub(r'(\d+)\s*(seconds?|secs?|s)\b', r'\1s', duration, flags=re.IGNORECASE)
-                duration = re.sub(r'\s*\(.*\)', '', duration)  # Remove health info
-                duration = re.sub(r'\s*ago\s*', '', duration)
+                duration = re.sub(
+                    r"(\d+)\s*(hours?|hrs?|h)\b", r"\1h", duration, flags=re.IGNORECASE
+                )
+                duration = re.sub(
+                    r"(\d+)\s*(days?|d)\b", r"\1d", duration, flags=re.IGNORECASE
+                )
+                duration = re.sub(
+                    r"(\d+)\s*(minutes?|mins?|m)\b",
+                    r"\1m",
+                    duration,
+                    flags=re.IGNORECASE,
+                )
+                duration = re.sub(
+                    r"(\d+)\s*(seconds?|secs?|s)\b",
+                    r"\1s",
+                    duration,
+                    flags=re.IGNORECASE,
+                )
+                duration = re.sub(r"\s*\(.*\)", "", duration)  # Remove health info
+                duration = re.sub(r"\s*ago\s*", "", duration)
                 status = f"{state} {duration}".strip()
 
             # Ports and names - last two columns
-            ports = parts[-2] if len(parts) >= 7 else ''
+            ports = parts[-2] if len(parts) >= 7 else ""
             name = parts[-1]
 
             # Check if ports column looks like ports (contains -> or starts with digit)
-            if ports and not re.search(r'[0-9].*->|->.*[0-9]', ports) and not re.match(r'^[0-9]', ports):
+            if (
+                ports
+                and not re.search(r"[0-9].*->|->.*[0-9]", ports)
+                and not re.match(r"^[0-9]", ports)
+            ):
                 # Doesn't look like ports, probably no ports column
-                ports = ''
+                ports = ""
                 if len(parts) >= 6:
                     name = parts[-1]
 
@@ -322,48 +387,56 @@ def compact_docker_output(output: str) -> str:
                 compact_parts.append(status)
             if ports and ports != name:
                 # Compact port format: remove IPv6 bracket notation
-                ports = re.sub(r',\s*\[::\].*?(?=\s|$)', '', ports)
+                ports = re.sub(r",\s*\[::\].*?(?=\s|$)", "", ports)
                 compact_parts.append(ports)
             if name:
                 compact_parts.append(name)
 
-            result.append(' '.join(compact_parts))
+            result.append(" ".join(compact_parts))
         elif line.strip():
             # For non-standard format, just truncate IDs
-            line = re.sub(r'\b([a-f0-9]{12,})\b', lambda m: m.group(1)[:7], line)
+            line = re.sub(r"\b([a-f0-9]{12,})\b", lambda m: m.group(1)[:7], line)
             result.append(line)
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def compact_nodejs_output(output: str) -> str:
     """Compact npm/pnpm output - compress package lists and remove verbose output."""
-    lines = output.split('\n')
+    lines = output.split("\n")
     result = []
     package_lines = []
     in_package_list = False
 
     for line in lines:
         # Detect package list start
-        if re.match(r'^\s*(added|removed|changed|updated)\s+\d+\s+packages?', line, re.IGNORECASE):
+        if re.match(
+            r"^\s*(added|removed|changed|updated)\s+\d+\s+packages?",
+            line,
+            re.IGNORECASE,
+        ):
             # Don't skip - keep summary but compact it
-            compacted = re.sub(r'in\s+[\d.]+[smh]', '', line).strip()
+            compacted = re.sub(r"in\s+[\d.]+[smh]", "", line).strip()
             if compacted:
                 result.append(compacted)
             continue
 
         # Skip these entirely
-        if re.match(r'^\s*(Progress:|packages:|audited|auditing)', line, re.IGNORECASE):
+        if re.match(r"^\s*(Progress:|packages:|audited|auditing)", line, re.IGNORECASE):
             continue
-        if re.match(r'^\s*(dependencies|devDependencies|peerDependencies):\s*$', line, re.IGNORECASE):
+        if re.match(
+            r"^\s*(dependencies|devDependencies|peerDependencies):\s*$",
+            line,
+            re.IGNORECASE,
+        ):
             continue
-        if re.match(r'^\s*Done in\s+[\d.]+[smh]?', line, re.IGNORECASE):
+        if re.match(r"^\s*Done in\s+[\d.]+[smh]?", line, re.IGNORECASE):
             continue
-        if re.match(r'^\s*WARN\s+', line, re.IGNORECASE):
+        if re.match(r"^\s*WARN\s+", line, re.IGNORECASE):
             continue
 
         # Collect package lines
-        if re.match(r'^\s*[+-]\s+@?[\w/-]+\s*[\d.]+', line):
+        if re.match(r"^\s*[+-]\s+@?[\w/-]+\s*[\d.]+", line):
             package_lines.append(line.strip())
             in_package_list = True
             continue
@@ -389,7 +462,7 @@ def compact_nodejs_output(output: str) -> str:
         else:
             result.extend(package_lines)
 
-    return '\n'.join(result)
+    return "\n".join(result)
 
 
 def postprocess_output(output: str, category: str) -> str:
@@ -593,20 +666,20 @@ def filter_output(output: str, category: str) -> str:
             compressed = compress_patterns(filtered_lines, category)
             # Verify we got meaningful output
             if compressed:
-                result = '\n'.join(compressed)
-                result = collapse_empty_lines(result.split('\n'))
+                result = "\n".join(compressed)
+                result = collapse_empty_lines(result.split("\n"))
                 return result
 
     # Phase 4: Deduplicate similar lines (fallback path)
     filtered_lines = deduplicate_similar_lines(filtered_lines)
 
-    result = '\n'.join(filtered_lines)
+    result = "\n".join(filtered_lines)
 
     # Phase 5: Postprocess (fallback)
     result = postprocess_output(result, category)
 
     # Final cleanup
-    result = collapse_empty_lines(result.split('\n'))
+    result = collapse_empty_lines(result.split("\n"))
 
     return result
 
@@ -628,4 +701,4 @@ def light_filter(lines: list[str], _category: str) -> str:
         if line_stripped:
             result.append(line_stripped)
 
-    return '\n'.join(result)
+    return "\n".join(result)

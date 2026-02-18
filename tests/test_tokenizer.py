@@ -1,6 +1,5 @@
 """Tests for the token estimation utilities."""
 
-
 from ctk.utils.tokenizer import (
     calculate_savings,
     estimate_command_tokens,
@@ -165,7 +164,9 @@ class TestCalculateSavings:
         filtered = "one"
         result = calculate_savings(original, filtered)
         if result["original_tokens"] > 0:
-            expected_percent = (result["tokens_saved"] / result["original_tokens"]) * 100
+            expected_percent = (
+                result["tokens_saved"] / result["original_tokens"]
+            ) * 100
             assert abs(result["savings_percent"] - expected_percent) < 0.1
 
     def test_never_negative_savings(self):

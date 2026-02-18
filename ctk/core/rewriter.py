@@ -122,7 +122,17 @@ _register_category(
         (r"^docker\s+inspect", "docker inspect"),
         (r"^docker\s+cp", "docker cp"),
     ],
-    subcommands=["compose", "ps", "images", "logs", "run", "build", "exec", "inspect", "cp"],
+    subcommands=[
+        "compose",
+        "ps",
+        "images",
+        "logs",
+        "run",
+        "build",
+        "exec",
+        "inspect",
+        "cp",
+    ],
     extractor=_extract_docker_subcommand,
 )
 
