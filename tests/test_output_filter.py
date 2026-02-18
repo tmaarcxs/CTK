@@ -322,6 +322,52 @@ class TestPostprocessOutput:
         assert postprocess_output(output, "unknown") == output
 
 
+class TestCompactDockerOutputDuration:
+    """Verify docker output uses compact_duration helper.
+
+    Docker ps format requires 6+ columns to trigger compacting:
+    ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+    """
+
+    def test_compacts_hours(self):
+        # Full docker ps format: ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert "2h" in result
+
+    def test_compacts_days(self):
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   3 days ago   Up 3 days   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert "3d" in result
+
+    def test_compacts_minutes(self):
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   45 minutes ago   Up 45 minutes   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert "45m" in result
+
+    def test_compacts_seconds(self):
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   30 seconds ago   Up 30 seconds   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert "30s" in result
+
+    def test_compacts_weeks(self):
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 weeks ago   Up 2 weeks   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert "2w" in result
+
+    def test_removes_health_info(self):
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours (healthy)   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert "(healthy)" not in result
+        assert "2h" in result
+
+    def test_removes_ago_suffix(self):
+        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours ago   0.0.0.0:80->80/tcp   web'
+        result = compact_docker_output(output)
+        assert " ago" not in result
+        assert "2h" in result
+
+
 class TestEnhancedPipeline:
     """Tests for the enhanced compression pipeline."""
 

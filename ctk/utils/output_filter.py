@@ -3,6 +3,7 @@
 import re
 from difflib import SequenceMatcher
 
+from ctk.utils.helpers import compact_duration
 from ctk.utils.patterns import compress_patterns, matches_expected_format
 from ctk.utils.symbols import has_errors
 
@@ -343,27 +344,8 @@ def compact_docker_output(output: str) -> str:
                 duration = (
                     status_match.group(2).strip() if status_match.group(2) else ""
                 )
-                # Compact duration
-                duration = re.sub(
-                    r"(\d+)\s*(hours?|hrs?|h)\b", r"\1h", duration, flags=re.IGNORECASE
-                )
-                duration = re.sub(
-                    r"(\d+)\s*(days?|d)\b", r"\1d", duration, flags=re.IGNORECASE
-                )
-                duration = re.sub(
-                    r"(\d+)\s*(minutes?|mins?|m)\b",
-                    r"\1m",
-                    duration,
-                    flags=re.IGNORECASE,
-                )
-                duration = re.sub(
-                    r"(\d+)\s*(seconds?|secs?|s)\b",
-                    r"\1s",
-                    duration,
-                    flags=re.IGNORECASE,
-                )
-                duration = re.sub(r"\s*\(.*\)", "", duration)  # Remove health info
-                duration = re.sub(r"\s*ago\s*", "", duration)
+                # Compact duration using shared helper
+                duration = compact_duration(duration)
                 status = f"{state} {duration}".strip()
 
             # Ports and names - last two columns
