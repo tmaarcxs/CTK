@@ -41,7 +41,7 @@ class ProxyVersionGroup(click.Group):
         )
 
         if has_version and not has_subcommand:
-            click.echo("ctk, version 1.2.1")
+            click.echo("ctk, version 1.2.2")
             sys.exit(0)
 
         # Otherwise, let Click handle it normally (version flag will be passed to subcommand)

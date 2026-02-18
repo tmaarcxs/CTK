@@ -90,7 +90,7 @@ class MetricsDB:
                 SELECT
                     COUNT(*) as total_commands,
                     SUM(tokens_saved) as total_saved,
-                    AVG(savings_percent) as avg_savings,
+                    SUM(tokens_saved) * 100.0 / NULLIF(SUM(original_tokens), 0) as overall_savings_pct,
                     SUM(CASE WHEN rewritten_command IS NOT NULL THEN 1 ELSE 0 END) as rewritten_count,
                     SUM(original_tokens) as total_original_tokens,
                     SUM(filtered_tokens) as total_filtered_tokens,
@@ -105,7 +105,7 @@ class MetricsDB:
             return {
                 "total_commands": row["total_commands"] or 0,
                 "total_tokens_saved": row["total_saved"] or 0,
-                "avg_savings_percent": round(row["avg_savings"] or 0, 1),
+                "avg_savings_percent": round(row["overall_savings_pct"] or 0, 1),
                 "rewritten_commands": row["rewritten_count"] or 0,
                 "total_original_tokens": row["total_original_tokens"] or 0,
                 "total_filtered_tokens": row["total_filtered_tokens"] or 0,
@@ -217,7 +217,7 @@ class MetricsDB:
                     category,
                     COUNT(*) as count,
                     SUM(tokens_saved) as tokens_saved,
-                    AVG(savings_percent) as avg_savings,
+                    SUM(tokens_saved) * 100.0 / NULLIF(SUM(original_tokens), 0) as overall_savings_pct,
                     SUM(original_tokens) as original_tokens,
                     SUM(filtered_tokens) as filtered_tokens
                 FROM executions
@@ -232,7 +232,7 @@ class MetricsDB:
                 row["category"]: {
                     "count": row["count"],
                     "tokens_saved": row["tokens_saved"] or 0,
-                    "avg_savings_percent": round(row["avg_savings"] or 0, 1),
+                    "avg_savings_percent": round(row["overall_savings_pct"] or 0, 1),
                     "original_tokens": row["original_tokens"] or 0,
                     "filtered_tokens": row["filtered_tokens"] or 0,
                 }
@@ -250,7 +250,7 @@ class MetricsDB:
                     date(timestamp) as date,
                     COUNT(*) as commands,
                     SUM(tokens_saved) as tokens_saved,
-                    AVG(savings_percent) as avg_savings
+                    SUM(tokens_saved) * 100.0 / NULLIF(SUM(original_tokens), 0) as avg_savings
                 FROM executions
                 WHERE timestamp >= datetime('now', ?)
                 GROUP BY date(timestamp)

@@ -190,10 +190,10 @@ class TestMetricsDB:
         assert history[0]["rewritten_command"] is None
 
     def test_summary_avg_savings(self, populated_db):
-        """Should calculate average savings percent correctly."""
+        """Should calculate overall savings percent from total tokens."""
         summary = populated_db.get_summary()
-        # (70 + 75 + 60) / 3 = 68.33...
-        assert abs(summary["avg_savings_percent"] - 68.3) < 0.2
+        # Total saved: 310, Total original: 450 -> 310/450 = 68.89%
+        assert abs(summary["avg_savings_percent"] - 68.9) < 0.2
 
 
 class TestMetricsDBEdgeCases:

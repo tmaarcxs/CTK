@@ -10,38 +10,6 @@ from ctk.utils.symbols import (
 )
 
 # =============================================================================
-# Pattern Templates
-# =============================================================================
-
-PATTERN_TEMPLATES = {
-    "git": {
-        # Group files by status: M:file1.ts,file2.ts
-        "status_group": "{symbol}:{files}",
-        # Branch info: branch:main
-        "branch": "branch:{name}",
-    },
-    "docker": {
-        # Container: id img state name
-        "container": "{id} {img} {state} {name}",
-        # With ports: id img state port name
-        "container_with_port": "{id} {img} {state} {port} {name}",
-    },
-    "python": {
-        # Test summary: 48p 2f | 3.42s
-        "summary": "{passed}p {failed}f | {duration}",
-        # Failure: FAIL:test_file.py::test_name
-        "failure": "FAIL:{file}::{test}",
-    },
-    "nodejs": {
-        # Package changes: +25 -3 ~12 | 5.2s
-        "packages": "{added}+ {removed}- {changed}~ | {duration}",
-        # Simplified: +25 -3 ~12
-        "packages_simple": "{added}+ {removed}- {changed}~",
-    },
-}
-
-
-# =============================================================================
 # Git Pattern Compression
 # =============================================================================
 
