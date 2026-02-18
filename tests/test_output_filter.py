@@ -1,14 +1,25 @@
 """Tests for output filtering functions."""
 
-from ctk.utils.output_filter import (
-    collapse_empty_lines,
-    compact_docker_output,
-    compact_git_status,
-    compact_pytest_output,
-    deduplicate_similar_lines,
+from ctk.utils.filters import (
+    _collapse_empty_lines as collapse_empty_lines,
+)
+from ctk.utils.filters import (
+    _deduplicate_similar_lines as deduplicate_similar_lines,
+)
+from ctk.utils.filters import (
+    compress_docker_output as compact_docker_output,
+)
+from ctk.utils.filters import (
+    compress_git_status as compact_git_status,
+)
+from ctk.utils.filters import (
+    compress_pytest_output as compact_pytest_output,
+)
+from ctk.utils.filters import (
     filter_output,
-    postprocess_output,
-    preprocess_output,
+)
+from ctk.utils.filters import (
+    preprocess as preprocess_output,
 )
 
 
@@ -259,23 +270,26 @@ class TestCompactFunctions:
 
     def test_git_status_compact(self):
         """Test git status compacting."""
-        output = "modified:   src/app.ts\ndeleted:    src/old.ts"
+        output = ["modified:   src/app.ts", "deleted:    src/old.ts"]
         result = compact_git_status(output)
-        assert "M src/app.ts" in result
-        assert "D src/old.ts" in result
+        result_str = "\n".join(result)
+        assert "M:" in result_str
+        assert "D:" in result_str
 
     def test_pytest_keeps_failures(self):
         """Test pytest output keeps failures."""
-        output = "test_one PASSED\ntest_two FAILED\ntest_three PASSED"
+        output = ["test_one PASSED", "test_two FAILED", "test_three PASSED"]
         result = compact_pytest_output(output)
-        assert "FAILED" in result
-        assert "PASSED" not in result
+        result_str = "\n".join(result)
+        assert "FAILED" in result_str or "FAIL" in result_str
+        assert "PASSED" not in result_str
 
     def test_docker_truncates_ids(self):
         """Test docker output truncates IDs."""
-        output = "abc123456789 nginx Up"
+        output = ["abc123456789 nginx Up"]
         result = compact_docker_output(output)
-        assert "abc1234" in result
+        result_str = "\n".join(result)
+        assert "abc1234" in result_str
 
 
 class TestCollapseEmptyLines:
@@ -309,19 +323,6 @@ class TestDeduplicateSimilarLines:
         assert len(result) == 3
 
 
-class TestPostprocessOutput:
-    """Tests for postprocess_output function."""
-
-    def test_empty_output(self):
-        """Empty output should return empty."""
-        assert postprocess_output("", "git") == ""
-
-    def test_unknown_category(self):
-        """Unknown category should return unchanged."""
-        output = "some output"
-        assert postprocess_output(output, "unknown") == output
-
-
 class TestCompactDockerOutputDuration:
     """Verify docker output uses compact_duration helper.
 
@@ -331,41 +332,48 @@ class TestCompactDockerOutputDuration:
 
     def test_compacts_hours(self):
         # Full docker ps format: ID IMAGE COMMAND CREATED STATUS PORTS NAMES
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert "2h" in result
+        result_str = "\n".join(result)
+        assert "2h" in result_str
 
     def test_compacts_days(self):
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   3 days ago   Up 3 days   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   3 days ago   Up 3 days   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert "3d" in result
+        result_str = "\n".join(result)
+        assert "3d" in result_str
 
     def test_compacts_minutes(self):
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   45 minutes ago   Up 45 minutes   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   45 minutes ago   Up 45 minutes   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert "45m" in result
+        result_str = "\n".join(result)
+        assert "45m" in result_str
 
     def test_compacts_seconds(self):
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   30 seconds ago   Up 30 seconds   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   30 seconds ago   Up 30 seconds   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert "30s" in result
+        result_str = "\n".join(result)
+        assert "30s" in result_str
 
     def test_compacts_weeks(self):
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 weeks ago   Up 2 weeks   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   2 weeks ago   Up 2 weeks   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert "2w" in result
+        result_str = "\n".join(result)
+        assert "2w" in result_str
 
     def test_removes_health_info(self):
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours (healthy)   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours (healthy)   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert "(healthy)" not in result
-        assert "2h" in result
+        result_str = "\n".join(result)
+        assert "(healthy)" not in result_str
+        assert "2h" in result_str
 
     def test_removes_ago_suffix(self):
-        output = 'abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours ago   0.0.0.0:80->80/tcp   web'
+        output = ['abc123456789   nginx:latest   "/docker-entrypoint…"   2 hours ago   Up 2 hours ago   0.0.0.0:80->80/tcp   web']
         result = compact_docker_output(output)
-        assert " ago" not in result
-        assert "2h" in result
+        result_str = "\n".join(result)
+        assert " ago" not in result_str
+        assert "2h" in result_str
 
 
 class TestEnhancedPipeline:

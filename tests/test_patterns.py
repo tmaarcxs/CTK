@@ -1,14 +1,22 @@
 """Tests for pattern compression functions."""
 
-from ctk.utils.patterns import (
+from ctk.utils.filters import (
+    _compress_files_output as compress_files_output,
+)
+from ctk.utils.filters import (
+    _compress_network_output as compress_network_output,
+)
+from ctk.utils.filters import (
+    _compress_patterns as compress_patterns,
+)
+from ctk.utils.filters import (
+    _matches_expected_format as matches_expected_format,
+)
+from ctk.utils.filters import (
     compress_docker_output,
-    compress_files_output,
     compress_git_status,
-    compress_network_output,
     compress_nodejs_output,
-    compress_patterns,
     compress_pytest_output,
-    matches_expected_format,
 )
 
 
