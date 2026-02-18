@@ -348,6 +348,107 @@ def compress_git_status(lines: list[str]) -> list[str]:
     return result
 
 
+def compress_git_log(lines: list[str]) -> list[str]:
+    """Compress git log output to minimal format.
+
+    Converts:
+        abc1234567 Author Name <email@example.com> Date: 2024-01-15
+            Commit message here that might be long
+
+    To:
+        abc1234 Author | Commit message here
+    """
+    result = []
+    sha_pattern = re.compile(r"^([a-f0-9]{7,40})\s+(.+)$")
+
+    for line in lines:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+
+        # Match commit lines: SHA + message
+        match = sha_pattern.match(line_stripped)
+        if match:
+            sha = match.group(1)[:7]  # Truncate to 7 chars
+            rest = match.group(2)
+
+            # Remove author email if present
+            rest = re.sub(r"<[^>]+>\s*", "", rest)
+
+            # Remove Date: prefix
+            rest = re.sub(r"Date:\s*[\d\-:]+\s*", "", rest)
+
+            # Truncate long messages
+            if len(rest) > 60:
+                rest = rest[:57] + "..."
+
+            result.append(f"{sha} {rest}")
+            continue
+
+        # Skip verbose headers
+        if re.match(r"^(Author:|Date:|Merge:|Commit:)", line_stripped):
+            continue
+
+        # Keep other lines as-is (shortened)
+        if line_stripped:
+            result.append(line_stripped[:80])
+
+    return result[:50]  # Limit output
+
+
+def compress_git_diff(lines: list[str]) -> list[str]:
+    """Compress git diff output to minimal format.
+
+    Shows file changes as summary, keeps key hunks.
+    """
+    result = []
+    file_summary: dict[str, dict[str, int]] = {}
+    current_file = None
+    in_hunk = False
+    hunk_lines = 0
+
+    for line in lines:
+        # Track file changes
+        if line.startswith("diff --git"):
+            match = re.search(r"diff --git a/(.+?) b/(.+)$", line)
+            if match:
+                current_file = match.group(2)
+                file_summary[current_file] = {"+": 0, "-": 0}
+            continue
+
+        if line.startswith("+++ b/") or line.startswith("--- a/"):
+            continue
+
+        # Count additions/deletions
+        if current_file and current_file in file_summary:
+            if line.startswith("+") and not line.startswith("+++"):
+                file_summary[current_file]["+"] += 1
+            elif line.startswith("-") and not line.startswith("---"):
+                file_summary[current_file]["-"] += 1
+
+        # Skip hunk headers but note we're in a hunk
+        if line.startswith("@@"):
+            in_hunk = True
+            hunk_lines = 0
+            continue
+
+        # Limit hunk content shown
+        if in_hunk:
+            hunk_lines += 1
+            if hunk_lines <= 3:  # Show first 3 lines of each hunk
+                result.append(line.rstrip())
+            continue
+
+    # Build summary
+    if file_summary:
+        for file, stats in file_summary.items():
+            plus = stats.get("+", 0)
+            minus = stats.get("-", 0)
+            result.insert(0, f"{file}: +{plus} -{minus}")
+
+    return result[:30]  # Limit output
+
+
 def compress_docker_output(lines: list[str]) -> list[str]:
     """Compress docker ps output to minimal format.
 
@@ -833,6 +934,8 @@ def _compress_network_output(lines: list[str]) -> list[str]:
 # Compressor registry
 _COMPRESSORS = {
     "git": compress_git_status,
+    "git-log": compress_git_log,
+    "git-diff": compress_git_diff,
     "docker": compress_docker_output,
     "python": compress_pytest_output,
     "nodejs": compress_nodejs_output,
@@ -854,6 +957,10 @@ def _matches_expected_format(lines: list[str], category: str) -> bool:
                 r"(modified|deleted|new file|On branch|Untracked)", text, re.IGNORECASE
             )
         )
+    elif category == "git-log":
+        return bool(re.search(r"^[a-f0-9]{7,40}\s+", text, re.MULTILINE))
+    elif category == "git-diff":
+        return bool(re.search(r"^(diff --git|@@|[\+\-]{3})", text, re.MULTILINE))
     elif category == "docker":
         return bool(re.search(r"(CONTAINER ID|[a-f0-9]{12,}\s+\w+)", text))
     elif category == "python":
@@ -917,6 +1024,47 @@ def _light_filter(lines: list[str], _category: str) -> str:
 
 
 # =============================================================================
+# Nested Category Detection
+# =============================================================================
+
+
+def _detect_nested_category(output: str, primary_category: str) -> str:
+    """Detect if output matches a different category than the command.
+
+    Used for compound commands like 'docker compose exec ... npm run build'
+    where the output is actually npm/vitest output, not docker output.
+    """
+    if not output:
+        return primary_category
+
+    text = output[:2000]  # Check first 2000 chars only
+
+    # Vitest/Jest test output patterns
+    if re.search(r"(PASS|FAIL)\s+[\w/]+\.test\.(ts|js|vue)", text):
+        return "vitest"
+    if re.search(r"Test Files:\s+\d+", text):
+        return "vitest"
+
+    # npm/pnpm build output
+    if re.search(r"(webpack|vite|esbuild).*building", text, re.IGNORECASE):
+        return "nodejs"
+    if re.search(r"built in [\d.]+(ms|s)", text, re.IGNORECASE):
+        return "nodejs"
+
+    # Python/pytest output inside docker
+    if re.search(r"(PASSED|FAILED|test session)", text):
+        return "python"
+    if re.search(r"pytest", text, re.IGNORECASE):
+        return "python"
+
+    # Alembic migration output
+    if re.search(r"INFO\s+\[alembic", text):
+        return "alembic"
+
+    return primary_category
+
+
+# =============================================================================
 # Main Filter Pipeline
 # =============================================================================
 
@@ -942,13 +1090,16 @@ def filter_output(output: str, category: str) -> str:
     if has_errors(lines):
         return _light_filter(lines, category)
 
+    # Detect nested category for compound commands (e.g., docker compose exec ... npm)
+    effective_category = _detect_nested_category(output, category)
+
     filtered_lines = []
 
-    # Combine patterns for Phase 2
-    patterns = SKIP_PATTERNS + CATEGORY_PATTERNS.get(category, [])
+    # Combine patterns for Phase 2 - use effective_category
+    patterns = SKIP_PATTERNS + CATEGORY_PATTERNS.get(effective_category, [])
 
     # For git category, don't use git_sensitive_patterns (we need to compact those lines)
-    if category != "git":
+    if effective_category != "git":
         patterns = patterns + GIT_SENSITIVE_PATTERNS
 
     for line in lines:
@@ -961,9 +1112,9 @@ def filter_output(output: str, category: str) -> str:
             filtered_lines.append(line)
 
     # Phase 3: Symbolize & Pattern Compress (for supported categories)
-    if category in _COMPRESSORS:
-        if _matches_expected_format(filtered_lines, category):
-            compressed = _compress_patterns(filtered_lines, category)
+    if effective_category in _COMPRESSORS:
+        if _matches_expected_format(filtered_lines, effective_category):
+            compressed = _compress_patterns(filtered_lines, effective_category)
             # Verify we got meaningful output
             if compressed:
                 result = "\n".join(compressed)
